@@ -222,61 +222,61 @@ exportLikelihoodProfiles <- function(outputFolder,
   
   ParallelLogger::logInfo("  Constructing master profile table")
   masterProfileTable <- Andromeda::andromeda()
-  batchSize <- 10000
+  batchSize <- 1000
   
-  ParallelLogger::logInfo("  - Adding CohortMethod profiles")
-  modelFiles <- list.files(file.path(outputFolder, "cohortMethod"), 
-                           pattern = "om_t[0-9]+_c[0-9]+_o[0-9]+.rds", 
-                           recursive = TRUE, 
-                           full.names = TRUE)
-  exposures <- loadExposureCohorts(outputFolder) 
-  mapping <- exposures %>%
-    filter(.data$sampled == FALSE) %>%
-    select(nonSampleExposureId = .data$exposureId, .data$baseExposureId, .data$shot, .data$comparator) %>%
-    inner_join(exposures %>%
-                 filter(.data$sampled == TRUE), 
-               by = c("baseExposureId", "shot", "comparator")) %>%
-    select(.data$nonSampleExposureId, .data$exposureId) 
-  starts <- seq(1, length(modelFiles), by = batchSize)
-  # modelFile = modelFiles[start]
-  extractCmProfile <- function(modelFile) {
-    model <- readRDS(modelFile)
-    profile <- model$logLikelihoodProfile
-    if (!is.null(profile)) {
-      row <- tibble(
-        analysisId = as.numeric(gsub("/.*", "", gsub(".*Analysis_", "", modelFile))),
-        exposureId = as.numeric(gsub("_.*", "", gsub(".*_t", "", modelFile))),
-        outcomeId = as.numeric(gsub("\\..*", "", gsub(".*_o", "", modelFile))),
-        periodId =  as.numeric(gsub("/.*", "", gsub(".*cmOutput_t", "", modelFile))),
-        point = paste(round(as.numeric(names(profile)), PROFILE_PRECISION), collapse = ";"),
-        value = paste(round(profile, PROFILE_PRECISION), collapse = ";")
-      )
-      return(row)
-    }
-    return(NULL)
-  }
-  
-  extractCmProfileBatch <- function(start) {
-    end <- min(length(modelFiles), start + batchSize - 1)
-    if (end > start) {
-      rows <- purrr::map_dfr(modelFiles[start:end], extractCmProfile)
-      if (nrow(rows) > 0) {
-        rows <- rows %>%
-          inner_join(mapping, by = "exposureId") %>%
-          select(-.data$exposureId) %>%
-          rename(exposureId = .data$nonSampleExposureId) %>%
-          mutate(databaseId = databaseId,
-                 method = "CohortMethod")
-        if (is.null(masterProfileTable$profiles)) {
-          masterProfileTable$profiles <- rows
-        } else {
-          Andromeda::appendToTable(masterProfileTable$profiles, rows)
-        }
-      }
-    }
-    return(NULL)
-  }
-  plyr::l_ply(starts, extractCmProfileBatch, .progress = "text")
+  # ParallelLogger::logInfo("  - Adding CohortMethod profiles")
+  # modelFiles <- list.files(file.path(outputFolder, "cohortMethod"), 
+  #                          pattern = "om_t[0-9]+_c[0-9]+_o[0-9]+.rds", 
+  #                          recursive = TRUE, 
+  #                          full.names = TRUE)
+  # exposures <- loadExposureCohorts(outputFolder) 
+  # mapping <- exposures %>%
+  #   filter(.data$sampled == FALSE) %>%
+  #   select(nonSampleExposureId = .data$exposureId, .data$baseExposureId, .data$shot, .data$comparator) %>%
+  #   inner_join(exposures %>%
+  #                filter(.data$sampled == TRUE), 
+  #              by = c("baseExposureId", "shot", "comparator")) %>%
+  #   select(.data$nonSampleExposureId, .data$exposureId) 
+  # starts <- seq(1, length(modelFiles), by = batchSize)
+  # # modelFile = modelFiles[start]
+  # extractCmProfile <- function(modelFile) {
+  #   model <- readRDS(modelFile)
+  #   profile <- model$logLikelihoodProfile
+  #   if (!is.null(profile)) {
+  #     row <- tibble(
+  #       analysisId = as.numeric(gsub("/.*", "", gsub(".*Analysis_", "", modelFile))),
+  #       exposureId = as.numeric(gsub("_.*", "", gsub(".*_t", "", modelFile))),
+  #       outcomeId = as.numeric(gsub("\\..*", "", gsub(".*_o", "", modelFile))),
+  #       periodId =  as.numeric(gsub("/.*", "", gsub(".*cmOutput_t", "", modelFile))),
+  #       point = paste(round(as.numeric(names(profile)), PROFILE_PRECISION), collapse = ";"),
+  #       value = paste(round(profile, PROFILE_PRECISION), collapse = ";")
+  #     )
+  #     return(row)
+  #   }
+  #   return(NULL)
+  # }
+  # 
+  # extractCmProfileBatch <- function(start) {
+  #   end <- min(length(modelFiles), start + batchSize - 1)
+  #   if (end > start) {
+  #     rows <- purrr::map_dfr(modelFiles[start:end], extractCmProfile)
+  #     if (nrow(rows) > 0) {
+  #       rows <- rows %>%
+  #         inner_join(mapping, by = "exposureId") %>%
+  #         select(-.data$exposureId) %>%
+  #         rename(exposureId = .data$nonSampleExposureId) %>%
+  #         mutate(databaseId = databaseId,
+  #                method = "CohortMethod")
+  #       if (is.null(masterProfileTable$profiles)) {
+  #         masterProfileTable$profiles <- rows
+  #       } else {
+  #         Andromeda::appendToTable(masterProfileTable$profiles, rows)
+  #       }
+  #     }
+  #   }
+  #   return(NULL)
+  # }
+  # plyr::l_ply(starts, extractCmProfileBatch, .progress = "text")
   
   ParallelLogger::logInfo("  - Adding HistoricalComparator profiles")
   historicComparatorEstimates <- loadEstimates(file.path(outputFolder, "hcSummary_withCvs.csv")) %>%
@@ -300,7 +300,12 @@ exportLikelihoodProfiles <- function(outputFolder,
         select(-.data$targetOutcomes, -.data$expectedOutcomes, -.data$irr) %>%
         mutate(databaseId = databaseId,
                method = "HistoricalComparator")
-      Andromeda::appendToTable(masterProfileTable$profiles, rows)
+      if (is.null(masterProfileTable$profiles)) {
+        masterProfileTable$profiles <- rows
+      }else{
+        Andromeda::appendToTable(masterProfileTable$profiles, rows)
+      }
+      
     }
     return(NULL)
   }
