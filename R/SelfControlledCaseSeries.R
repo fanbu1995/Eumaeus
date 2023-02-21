@@ -188,7 +188,7 @@ computeSccsEstimates <- function(connectionDetails,
                                                               getDbSccsDataThreads = min(4, maxCores),
                                                               createStudyPopulationThreads = min(10, maxCores),
                                                               createSccsIntervalDataThreads = min(10, maxCores),
-                                                              fitSccsModelThreads = min(10, floor(maxCores/4)),
+                                                              fitSccsModelThreads = min(10, ceiling(maxCores/4)),
                                                               cvThreads = min(maxCores, 4))
   
   estimates <- summarizeSccsAnalyses(referenceTable, periodFolder)

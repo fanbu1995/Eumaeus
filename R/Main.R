@@ -57,7 +57,7 @@ getExposuresOfInterest <- function() {
 #'                             for the available exposure cohorts and their IDs.
 #' @param verifyDependencies   Check whether correct package versions are installed?
 #' @param createCohorts        Create the exposure and outcome cohorts?
-#' @param synthesizePositiveControls          Should positive controls be synthesized?
+#' @param createAllControls          Should a "allControls.csv" file be generated?
 #' @param runCohortMethod                     Perform the cohort method analyses?
 #' @param runSccs                     Perform the SCCS and SCRI analyses?
 #' @param runCaseControl                     Perform the case-control analyses?
@@ -81,7 +81,7 @@ execute <- function(connectionDetails,
                     exposureIds = getExposuresOfInterest()$exposureId,
                     verifyDependencies = TRUE,
                     createCohorts = TRUE,
-                    synthesizePositiveControls = TRUE,
+                    createAllControls = TRUE,
                     runCohortMethod = TRUE,
                     runSccs = TRUE,
                     runCaseControl = TRUE,
@@ -115,14 +115,25 @@ execute <- function(connectionDetails,
     
   }
   
-  if (synthesizePositiveControls) {
-    ParallelLogger::logInfo("Synthesizing positive controls")
-    synthesizePositiveControls(connectionDetails = connectionDetails,
-                               cdmDatabaseSchema = cdmDatabaseSchema,
-                               cohortDatabaseSchema = cohortDatabaseSchema,
-                               cohortTable = cohortTable,
-                               outputFolder = outputFolder,
-                               maxCores = maxCores)
+  # if (synthesizePositiveControls) {
+  #   ParallelLogger::logInfo("Synthesizing positive controls")
+  #   synthesizePositiveControls(connectionDetails = connectionDetails,
+  #                              cdmDatabaseSchema = cdmDatabaseSchema,
+  #                              cohortDatabaseSchema = cohortDatabaseSchema,
+  #                              cohortTable = cohortTable,
+  #                              outputFolder = outputFolder,
+  #                              maxCores = maxCores)
+  # }
+  
+  # create a allControls.csv file here...
+  if(createAllControls){
+    ParallelLogger::logInfo("Creating all controls file using negative controls")
+    createAllControlsFile(connectionDetails = connectionDetails,
+                          cdmDatabaseSchema = cdmDatabaseSchema,
+                          cohortDatabaseSchema = cohortDatabaseSchema,
+                          cohortTable = cohortTable,
+                          outputFolder = outputFolder,
+                          maxCores = maxCores)
   }
   
   if (runCohortMethod) {

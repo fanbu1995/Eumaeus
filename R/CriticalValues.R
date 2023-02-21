@@ -24,15 +24,15 @@ computeCriticalValues <- function(outputFolder, maxCores) {
                           cvFunction = Eumaeus:::computeHistoricalComparatorCv, 
                           cluster = cluster) 
   
-  computeCvsIncrementally(estimatesFileName = file.path(outputFolder, "ccSummary.csv"), 
-                          estimatesWithCvsFileName = file.path(outputFolder, "ccSummary_withCvs.csv"),
-                          cvFunction = computeCaseControlCv, 
-                          cluster = cluster) 
+  # computeCvsIncrementally(estimatesFileName = file.path(outputFolder, "ccSummary.csv"), 
+  #                         estimatesWithCvsFileName = file.path(outputFolder, "ccSummary_withCvs.csv"),
+  #                         cvFunction = computeCaseControlCv, 
+  #                         cluster = cluster) 
   
-  computeCvsIncrementally(estimatesFileName = file.path(outputFolder, "cmSummary.csv"), 
-                          estimatesWithCvsFileName = file.path(outputFolder, "cmSummary_withCvs.csv"),
-                          cvFunction = computeCohortMethodCv, 
-                          cluster = cluster) 
+  # computeCvsIncrementally(estimatesFileName = file.path(outputFolder, "cmSummary.csv"), 
+  #                         estimatesWithCvsFileName = file.path(outputFolder, "cmSummary_withCvs.csv"),
+  #                         cvFunction = computeCohortMethodCv, 
+  #                         cluster = cluster) 
   
   computeCvsIncrementally(estimatesFileName = file.path(outputFolder, "sccsSummary.csv"), 
                           estimatesWithCvsFileName = file.path(outputFolder, "sccsSummary_withCvs.csv"),

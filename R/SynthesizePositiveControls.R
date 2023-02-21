@@ -124,3 +124,30 @@ synthesizePositiveControls <- function(connectionDetails,
   
   readr::write_csv(allControls, file.path(outputFolder, "AllControls.csv"))
 }
+
+# Aug 9:(copied from Better-GBS)
+# create a function to create a dummy "AllControls.csv" file 
+# that only includes negative controls information
+createAllControlsFile <- function(connectionDetails,
+                                  cdmDatabaseSchema,
+                                  cohortDatabaseSchema,
+                                  cohortTable,
+                                  outputFolder,
+                                  maxCores) {
+  
+  ParallelLogger::logTrace("Creating allControls file with ONLY negative controls ")
+  negativeControls <- loadNegativeControls() %>%
+    distinct(.data$outcomeId, .data$outcomeName) %>%
+    inner_join(loadExposuresofInterest() %>% distinct(.data$exposureId), by = character(0))
+  
+  negativeControls$targetEffectSize <- 1
+  negativeControls$trueEffectSize <- 1
+  negativeControls$trueEffectSizeFirstExposure <- 1
+  negativeControls$oldOutcomeId <- negativeControls$outcomeId
+  
+  exposuresOfInterest <- loadExposuresofInterest()
+  allControls <- negativeControls %>%
+    inner_join(exposuresOfInterest %>% select(-.data$exposureName), by = "exposureId")
+  
+  readr::write_csv(allControls, file.path(outputFolder, "AllControls.csv"))
+}

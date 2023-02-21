@@ -1,67 +1,6 @@
-# This code is used to perform positive control imputation based on the estimates in the results database
-library(dplyr)
-databaseId <- "IBM_MDCD"
-addImputedPositiveControls <- function(connectionDetails, schema, databaseId) {
-  connection <- DatabaseConnector::connect(connectionDetails)
-  on.exit(DatabaseConnector::disconnect(connection))
-  
-  sql <- "SELECT estimate.*, outcome_name
-  FROM @schema.estimate 
-  INNER JOIN @schema.negative_control_outcome
-    ON estimate.outcome_id = negative_control_outcome.outcome_id
-  WHERE estimate.database_id = '@database_id';"
-  estimates <- DatabaseConnector::renderTranslateQuerySql(connection = connection,
-                                                          sql = sql,
-                                                          schema = schema,
-                                                          database_id = databaseId,
-                                                          snakeCaseToCamelCase = TRUE)
-  
-  estimates <- imputePositiveControls(estimates)
-  
-  imputedPositiveControlOutcome <- estimates %>%
-    filter(.data$effectSize > 1) %>%
-    distinct(.data$exposureId, .data$outcomeId, .data$outcomeName, .data$effectSize, .data$negativeControlId)
-
-  estimates <- estimates %>%
-    select(-.data$outcomeName, -.data$effectSize, -.data$negativeControlId)
-  
-  sql <- "SELECT exposure_id, outcome_id
-    FROM @schema.imputed_positive_control_outcome;"
-  pcsAlreadyInDb <- DatabaseConnector::renderTranslateQuerySql(connection = connection,
-                                                               sql = sql,
-                                                               schema = schema,
-                                                               snakeCaseToCamelCase = TRUE)
-  imputedPositiveControlOutcome <- imputedPositiveControlOutcome %>%
-    anti_join(pcsAlreadyInDb, by = c("exposureId", "outcomeId"))
-  
-  if (nrow(imputedPositiveControlOutcome) > 0) {
-    writeLines("Uploading imputed positive control reference")
-    colnames(imputedPositiveControlOutcome) <- SqlRender::camelCaseToSnakeCase(colnames(imputedPositiveControlOutcome))
-    Eumaeus:::insertDataIntoDb(connection = connection,
-                               connectionDetails = connectionDetails,
-                               schema = schema,
-                               tableName = "imputed_positive_control_outcome",
-                               data = imputedPositiveControlOutcome)
-  }
-  
-  sql <- "DELETE
-    FROM @schema.estimate_imputed_pcs
-    WHERE database_id = '@database_id';"
-  DatabaseConnector::renderTranslateExecuteSql(connection = connection,
-                                               sql = sql,
-                                               schema = schema,
-                                               database_id = databaseId)
-  
-  writeLines("Uploading estimates")
-  colnames(estimates) <- SqlRender::camelCaseToSnakeCase(colnames(estimates))
-  Eumaeus:::insertDataIntoDb(connection = connection,
-                             connectionDetails = connectionDetails,
-                             schema = schema,
-                             tableName = "estimate_imputed_pcs",
-                             data = estimates)
-}
-
-imputePositiveControls <- function(estimates, effectSizesToImpute = c(1.5, 2, 4), maxCores = parallel::detectCores()) {
+imputePositiveControls <- function(estimates, 
+                                   effectSizesToImpute = c(1.5, 2, 4), 
+                                   maxCores = parallel::detectCores()) {
   if (all(is.na(estimates$oneSidedP))) {
     estimates <- estimates %>%
       mutate(oneSidedP = 1 - pnorm(.data$logRr, 0, .data$seLogRr))
@@ -92,8 +31,8 @@ imputePositiveControls <- function(estimates, effectSizesToImpute = c(1.5, 2, 4)
   if (max(imputedPositiveControls$outcomeId) > .Machine$integer.max)
     stop("New outcome IDs outside of integer range")
   if (any(duplicated(imputedPositiveControls %>% 
-                   distinct(.data$exposureId, .data$outcomeId, .data$outcomeName, .data$effectSize, .data$negativeControlId) %>%
-                   pull(.data$outcomeId))))
+                     distinct(.data$exposureId, .data$outcomeId, .data$outcomeName, .data$effectSize, .data$negativeControlId) %>%
+                     pull(.data$outcomeId))))
     stop("New outcome IDs contains duplicates")
   estimates <- estimates %>%
     mutate(effectSize = 1) %>%

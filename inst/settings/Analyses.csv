@@ -64,7 +64,7 @@ SCCS,8,"SCRI with posterior control interval",1-42
 SCCS,9,"Unadjusted SCCS excluding pre-vaccination window",0-1
 SCCS,10,"Age & season adjusted SCCS excluding pre-vaccination window",0-1
 SCCS,11,"SCRI with prior control interval",0-1
-SCCS,12,"SCRI with posterior control interval",01
+SCCS,12,"SCRI with posterior control interval",0-1
 SCCS,13,"Unadjusted SCCS excluding all pre-vaccination time",1-28
 SCCS,14,"Unadjusted SCCS excluding all pre-vaccination time",1-42
 SCCS,15,"Unadjusted SCCS excluding all pre-vaccination time",0-1
